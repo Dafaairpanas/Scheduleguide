@@ -12,7 +12,9 @@ import { InteractionOverlay } from './InteractionOverlay';
 
 export const CircularClock: React.FC = () => {
   const svgRef = useRef<SVGSVGElement>(null);
-  const [currentMinutes, setCurrentMinutes] = useState<number>(0);
+  const [currentMinutes, setCurrentMinutes] = useState<number>(() =>
+    typeof window !== 'undefined' ? getCurrentSystemMinutes() : 0
+  );
   const setActiveDrag = useScheduleStore((state) => state.setActiveDrag);
   const activeTagId = useScheduleStore((state) => state.activeTagId);
 

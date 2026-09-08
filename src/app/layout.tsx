@@ -13,7 +13,10 @@ const geistMono = Geist_Mono({
 });
 
 export const viewport: Viewport = {
-  themeColor: "#ffffff",
+  themeColor: [
+    { media: "(prefers-color-scheme: light)", color: "#f8fafc" },
+    { media: "(prefers-color-scheme: dark)", color: "#f8fafc" },
+  ],
   width: "device-width",
   initialScale: 1,
   maximumScale: 5,
@@ -27,7 +30,7 @@ export const metadata: Metadata = {
   manifest: "/manifest.json",
   appleWebApp: {
     capable: true,
-    statusBarStyle: "default",
+    statusBarStyle: "black-translucent",
     title: "ChronoCircle",
   },
   icons: {
@@ -60,6 +63,24 @@ export default function RootLayout({
       lang="id"
       className={`${geistSans.variable} ${geistMono.variable} h-full antialiased`}
     >
+      <head>
+        {/* Registrasi dini Service Worker untuk Instant-Boot PWA Cache */}
+        <script
+          dangerouslySetInnerHTML={{
+            __html: `
+              if (typeof window !== 'undefined' && 'serviceWorker' in navigator) {
+                if (document.readyState === 'complete' || document.readyState === 'interactive') {
+                  navigator.serviceWorker.register('/sw.js').catch(function(){});
+                } else {
+                  window.addEventListener('DOMContentLoaded', function() {
+                    navigator.serviceWorker.register('/sw.js').catch(function(){});
+                  });
+                }
+              }
+            `,
+          }}
+        />
+      </head>
       <body className="min-h-full flex flex-col bg-[#f8fafc] text-slate-900 selection:bg-indigo-100 selection:text-indigo-900">
         {children}
       </body>

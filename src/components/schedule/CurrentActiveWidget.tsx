@@ -27,8 +27,19 @@ export const CurrentActiveWidget: React.FC = () => {
   const setSelectedBlockId = useScheduleStore((state) => state.setSelectedBlockId);
   const setEditModalOpen = useScheduleStore((state) => state.setEditModalOpen);
 
-  const [currentMinutes, setCurrentMinutes] = useState(0);
-  const [currentSeconds, setCurrentSeconds] = useState(0);
+  const [currentMinutes, setCurrentMinutes] = useState(() => {
+    if (typeof window !== 'undefined') {
+      const d = new Date();
+      return d.getHours() * 60 + d.getMinutes();
+    }
+    return 0;
+  });
+  const [currentSeconds, setCurrentSeconds] = useState(() => {
+    if (typeof window !== 'undefined') {
+      return new Date().getSeconds();
+    }
+    return 0;
+  });
   const [chimeEnabled, setChimeEnabled] = useState(true);
   const [notifEnabled, setNotifEnabled] = useState(false);
 
@@ -82,8 +93,14 @@ export const CurrentActiveWidget: React.FC = () => {
   // Deteksi pergantian jadwal -> Audio Chime & Browser Notification
   useEffect(() => {
     const currentId = activeBlock ? activeBlock.id : 'free-time';
-    if (lastBlockIdRef.current !== null && lastBlockIdRef.current !== currentId) {
-      // Jadwal berubah!
+    if (lastBlockIdRef.current === null) {
+      // Rekam status awal tanpa memicu notifikasi pembukaan
+      lastBlockIdRef.current = currentId;
+      return;
+    }
+
+    if (lastBlockIdRef.current !== currentId) {
+      // Jadwal benar-benar berubah saat aplikasi sedang dibuka
       if (chimeEnabled) {
         sound.playTransitionChime();
       }
@@ -100,8 +117,8 @@ export const CurrentActiveWidget: React.FC = () => {
           );
         }
       }
+      lastBlockIdRef.current = currentId;
     }
-    lastBlockIdRef.current = currentId;
   }, [activeBlock, chimeEnabled, notifEnabled]);
 
   // Kalkulasi durasi, waktu terlewat, sisa waktu, dan progress %
@@ -176,7 +193,7 @@ export const CurrentActiveWidget: React.FC = () => {
               <span className="absolute w-2.5 h-2.5 rounded-full animate-ping opacity-75" style={{ backgroundColor: isFreeTime ? '#10b981' : themeColor }} />
               <span className="relative w-2 h-2 rounded-full" style={{ backgroundColor: isFreeTime ? '#10b981' : themeColor }} />
             </div>
-            <span className="font-mono text-slate-800 text-sm font-bold tracking-tight">
+            <span className="font-mono text-slate-800 text-sm font-bold tracking-tight" suppressHydrationWarning>
               {formatTime(currentMinutes)}
               <span className="text-[10px] text-slate-400 font-medium ml-0.5 animate-pulse">:{currentSeconds.toString().padStart(2, '0')}</span>
             </span>

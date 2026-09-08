@@ -1,7 +1,7 @@
 'use client';
 
 import React, { useState, useEffect } from 'react';
-import { Smartphone, Download, WifiOff, X, CheckCircle2 } from 'lucide-react';
+import { Smartphone, Download, WifiOff, X, CheckCircle2, Zap } from 'lucide-react';
 
 interface BeforeInstallPromptEvent extends Event {
   prompt: () => Promise<void>;
@@ -16,27 +16,7 @@ export const PwaInstallBanner: React.FC = () => {
   const [showOnlineToast, setShowOnlineToast] = useState(false);
 
   useEffect(() => {
-    // 1. Daftarkan Service Worker
-    if (typeof window !== 'undefined' && 'serviceWorker' in navigator) {
-      const registerSW = () => {
-        navigator.serviceWorker
-          .register('/sw.js')
-          .then((registration) => {
-            console.log('SW registered successfully:', registration.scope);
-          })
-          .catch((err) => {
-            console.log('SW registration failed:', err);
-          });
-      };
-
-      if (document.readyState === 'complete') {
-        registerSW();
-      } else {
-        window.addEventListener('load', registerSW);
-      }
-    }
-
-    // 2. Deteksi status standalone (sudah terinstall sebagai PWA)
+    // 1. Deteksi status standalone (sudah terinstall sebagai PWA di HP atau Desktop)
     if (
       window.matchMedia('(display-mode: standalone)').matches ||
       (window.navigator as unknown as { standalone?: boolean }).standalone === true
@@ -44,7 +24,7 @@ export const PwaInstallBanner: React.FC = () => {
       setIsInstalled(true);
     }
 
-    // 3. Tangkap event instalasi browser
+    // 2. Tangkap event instalasi browser (beforeinstallprompt)
     const handleBeforeInstallPrompt = (e: Event) => {
       e.preventDefault();
       setDeferredPrompt(e as BeforeInstallPromptEvent);
@@ -55,7 +35,7 @@ export const PwaInstallBanner: React.FC = () => {
       setDeferredPrompt(null);
     };
 
-    // 4. Deteksi koneksi internet
+    // 3. Deteksi koneksi internet
     const handleOffline = () => setIsOffline(true);
     const handleOnline = () => {
       setIsOffline(false);
@@ -90,17 +70,20 @@ export const PwaInstallBanner: React.FC = () => {
 
   return (
     <div className="w-full flex flex-col gap-2 transition-all">
-      {/* Banner Mode Offline */}
+      {/* Banner Mode Offline - Menjelaskan bahwa sistem tetap aktif 100% lokal & instan */}
       {isOffline && (
-        <div className="w-full flex items-center justify-between px-4 py-2.5 rounded-2xl bg-amber-50 border border-amber-200 text-amber-900 shadow-sm animate-in fade-in slide-in-from-top-2 duration-300">
+        <div className="w-full flex items-center justify-between px-4 py-2.5 rounded-2xl bg-amber-500/10 border border-amber-500/20 text-amber-900 shadow-sm animate-in fade-in slide-in-from-top-2 duration-300">
           <div className="flex items-center gap-2.5 text-xs font-medium">
-            <span className="p-1 rounded-lg bg-amber-100 text-amber-700">
-              <WifiOff className="w-4 h-4 shrink-0" />
+            <span className="p-1 rounded-lg bg-amber-100 text-amber-700 shrink-0">
+              <WifiOff className="w-4 h-4" />
             </span>
             <span>
-              <strong>Mode Offline Aktif:</strong> Anda sedang offline. Seluruh fitur jadwal tetap berfungsi normal dan tersimpan di HP/perangkat Anda.
+              <strong>Mode Offline Aktif:</strong> Semua fitur jadwal, visual jam, dan data Anda tetap berjalan instan 100% dari memori perangkat.
             </span>
           </div>
+          <span className="hidden sm:flex items-center gap-1 text-[10px] font-bold uppercase tracking-wider text-amber-700 bg-amber-100 px-2 py-0.5 rounded-md">
+            <Zap className="w-3 h-3" /> Instan
+          </span>
         </div>
       )}
 
@@ -127,11 +110,11 @@ export const PwaInstallBanner: React.FC = () => {
                   Pasang ChronoCircle di HP
                 </span>
                 <span className="text-[10px] uppercase font-semibold px-2 py-0.5 rounded-full bg-indigo-100 text-indigo-700">
-                  Aplikasi Ringan & Offline
+                  Buka Seketika • 100% Offline
                 </span>
               </div>
               <p className="text-[11px] text-slate-500 leading-tight mt-0.5">
-                Akses cepat langsung dari layar utama ponsel Anda, tanpa browser bar dan siap offline kapan saja.
+                Akses cepat langsung dari layar utama ponsel Anda, tanpa bilah browser dan siap dipakai kapan pun.
               </p>
             </div>
           </div>

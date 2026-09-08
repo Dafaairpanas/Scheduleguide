@@ -160,6 +160,7 @@ export const ClockDial: React.FC<ClockDialProps> = ({ currentTimeMinutes }) => {
           fontWeight="800"
           letterSpacing="-1"
           fontFamily="monospace"
+          suppressHydrationWarning
         >
           {activeBlock && !isDragging
             ? `${formatTime(activeBlock.startMinutes)} – ${formatTime(activeBlock.endMinutes)}`
