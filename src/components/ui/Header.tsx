@@ -8,7 +8,7 @@ import {
   Redo2,
   Magnet,
   Tag as TagIcon,
-  Download,
+  ArrowLeftRight,
   Calendar,
   Sparkles,
 } from 'lucide-react';
@@ -117,10 +117,10 @@ export const Header: React.FC = () => {
           {/* Backup / Export Button */}
           <button
             onClick={() => setBackupModalOpen(true)}
-            title="Backup & Sinkronisasi Lokal"
+            title="Salin & Tempel Jadwal (Export / Import)"
             className="p-1.5 sm:p-2 rounded-xl bg-white border border-slate-200/60 text-slate-500 hover:text-indigo-600 hover:bg-indigo-50 hover:border-indigo-200 transition-all shadow-xs"
           >
-            <Download className="w-3.5 h-3.5 sm:w-4 sm:h-4" />
+            <ArrowLeftRight className="w-3.5 h-3.5 sm:w-4 sm:h-4" />
           </button>
         </div>
       </div>

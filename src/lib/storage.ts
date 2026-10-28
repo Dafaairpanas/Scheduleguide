@@ -92,19 +92,122 @@ export function saveSnapStepToStorage(step: SnapInterval): void {
 }
 
 /**
- * Mengekspor seluruh jadwal & tag ke dalam file JSON yang dapat diunduh.
+ * Menghasilkan string JSON cadangan dari data jadwal dan kategori.
  */
-export function exportBackupFile(schedules: ScheduleBlock[], tags: Tag[]): void {
+export function generateBackupString(schedules: ScheduleBlock[], tags: Tag[]): string {
   const data: BackupData = {
     version: 1,
     exportedAt: new Date().toISOString(),
     schedules,
     tags,
   };
+  return JSON.stringify(data, null, 2);
+}
 
-  const jsonString = `data:text/json;charset=utf-8,${encodeURIComponent(
-    JSON.stringify(data, null, 2)
-  )}`;
+/**
+ * Menyalin teks ke clipboard perangkat dengan fallback kompatibilitas penuh.
+ */
+export async function copyToClipboard(text: string): Promise<boolean> {
+  if (typeof window === 'undefined') return false;
+
+  try {
+    if (navigator?.clipboard?.writeText) {
+      await navigator.clipboard.writeText(text);
+      return true;
+    }
+  } catch (err) {
+    console.warn('Clipboard writeText failed, trying execCommand fallback:', err);
+  }
+
+  try {
+    const textarea = document.createElement('textarea');
+    textarea.value = text;
+    textarea.style.position = 'fixed';
+    textarea.style.top = '0';
+    textarea.style.left = '0';
+    textarea.style.opacity = '0';
+    textarea.style.pointerEvents = 'none';
+    document.body.appendChild(textarea);
+    textarea.focus();
+    textarea.select();
+    const successful = document.execCommand('copy');
+    document.body.removeChild(textarea);
+    return successful;
+  } catch (err) {
+    console.error('Semua metode copy ke clipboard gagal:', err);
+    return false;
+  }
+}
+
+/**
+ * Memvalidasi dan mengekstrak data jadwal dari string JSON yang ditempel.
+ */
+export function parseBackupData(rawText: string): { schedules: ScheduleBlock[]; tags: Tag[] } {
+  const trimmed = (rawText || '').trim();
+  if (!trimmed) {
+    throw new Error('Data masih kosong. Silakan tempel kode JSON jadwal terlebih dahulu.');
+  }
+
+  let parsed: unknown;
+  try {
+    parsed = JSON.parse(trimmed);
+  } catch {
+    throw new Error('Format JSON tidak valid. Pastikan seluruh teks kode tersalin secara lengkap.');
+  }
+
+  if (!parsed || typeof parsed !== 'object') {
+    throw new Error('Format data tidak sesuai objek cadangan.');
+  }
+
+  const record = parsed as Record<string, unknown>;
+  let schedulesRaw: unknown[] = [];
+  let tags: Tag[] = DEFAULT_TAGS;
+
+  if (Array.isArray(parsed)) {
+    schedulesRaw = parsed;
+  } else if (Array.isArray(record.schedules)) {
+    schedulesRaw = record.schedules;
+    if (Array.isArray(record.tags) && record.tags.length > 0) {
+      tags = record.tags as Tag[];
+    }
+  } else {
+    throw new Error('Format data tidak memuat struktur jadwal ChronoCircle yang valid.');
+  }
+
+  // Validasi dan normalisasi tiap blok jadwal
+  const validSchedules: ScheduleBlock[] = schedulesRaw
+    .filter((s): s is Record<string, unknown> => {
+      return (
+        s !== null &&
+        typeof s === 'object' &&
+        typeof (s as Record<string, unknown>).title === 'string' &&
+        typeof (s as Record<string, unknown>).startMinutes === 'number' &&
+        typeof (s as Record<string, unknown>).endMinutes === 'number'
+      );
+    })
+    .map((s) => ({
+      id: typeof s.id === 'string' && s.id ? s.id : 'block-' + Math.random().toString(36).substring(2, 9),
+      title: String(s.title),
+      startMinutes: Number(s.startMinutes),
+      endMinutes: Number(s.endMinutes),
+      tagId: typeof s.tagId === 'string' ? s.tagId : tags[0]?.id || DEFAULT_TAGS[0].id,
+      notes: typeof s.notes === 'string' ? s.notes : undefined,
+      createdAt: typeof s.createdAt === 'number' ? s.createdAt : Date.now(),
+    }));
+
+  if (validSchedules.length === 0 && schedulesRaw.length > 0) {
+    throw new Error('Tidak ada blok jadwal yang valid di dalam data.');
+  }
+
+  return { schedules: validSchedules, tags };
+}
+
+/**
+ * Mengekspor seluruh jadwal & tag ke dalam file JSON yang dapat diunduh (opsi opsional).
+ */
+export function exportBackupFile(schedules: ScheduleBlock[], tags: Tag[]): void {
+  const json = generateBackupString(schedules, tags);
+  const jsonString = `data:text/json;charset=utf-8,${encodeURIComponent(json)}`;
   const downloadAnchor = document.createElement('a');
   const dateStr = new Date().toISOString().slice(0, 10);
   downloadAnchor.setAttribute('href', jsonString);
@@ -115,17 +218,9 @@ export function exportBackupFile(schedules: ScheduleBlock[], tags: Tag[]): void 
 }
 
 /**
- * Memvalidasi dan mengekstrak data dari file JSON yang diunggah.
+ * Memvalidasi dan mengekstrak data dari file JSON yang diunggah (kompatibilitas).
  */
 export function parseBackupFile(jsonString: string): { schedules: ScheduleBlock[]; tags: Tag[] } {
-  const parsed = JSON.parse(jsonString);
-
-  if (!parsed || typeof parsed !== 'object') {
-    throw new Error('Format file JSON tidak valid');
-  }
-
-  const schedules = Array.isArray(parsed.schedules) ? parsed.schedules : [];
-  const tags = Array.isArray(parsed.tags) && parsed.tags.length > 0 ? parsed.tags : DEFAULT_TAGS;
-
-  return { schedules, tags };
+  return parseBackupData(jsonString);
 }
+
